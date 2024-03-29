@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "944863983417",
+    "project_id": "fir-react-native-2-a3816",
+    "storage_bucket": "fir-react-native-2-a3816.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:944863983417:android:03e58ef3e13ac826c35ae8",
+        "android_client_info": {
+          "package_name": "com.demo_slide_6"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB6mMmH8Lmgri_hXbS3twaLkM-Aa6PuKa8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
