@@ -1,10 +1,44 @@
-import { useState } from "react";
-import { Alert, Button, Text, TextInput, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Button, Text, TextInput, View, PermissionsAndroid} from "react-native";
 import auth from '@react-native-firebase/auth';
+import { GoogleSignin } from "react-native-google-signin";
+import messaging from '@react-native-firebase/messaging';
 function App(): React.JSX.Element {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  GoogleSignin.configure({
+    webClientId: '944863983417-8e8hidghpge964g7io597b2q2jvsjm8u.apps.googleusercontent.com'
+  })
+
+  async function onGoogleButtonPress() {
+    await GoogleSignin.hasPlayServices({
+      showPlayServicesUpdateDialog: true
+    });
+
+    const { idToken } = await GoogleSignin.signIn();
+
+    const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+    return auth().signInWithCredential(googleCredential);
+  }
+
+
+  useEffect(() =>{
+    PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+    registerAppWithFCM();
+  },[]);
+
+  useEffect(() => {
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
+    });
+
+    return unsubscribe;
+  }, []);
+
+  async function registerAppWithFCM() {
+    await messaging().registerDeviceForRemoteMessages();
+  }
 
   return (
     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -36,9 +70,14 @@ function App(): React.JSX.Element {
               Alert.alert('That email address is invalid!');
             }
             console.log(error);
-            
+
           })
       }} />
+
+      <Button
+        title="Google Sign-In"
+        onPress={() => onGoogleButtonPress().then(() => console.log('Signed in with Google!'))}
+      />
     </View>
   )
 }
