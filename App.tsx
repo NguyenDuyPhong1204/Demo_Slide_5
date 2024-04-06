@@ -1,32 +1,47 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Text, TextInput, View, PermissionsAndroid} from "react-native";
-import auth from '@react-native-firebase/auth';
+import { Alert, Button, Text, TextInput, View, PermissionsAndroid, TouchableOpacity, Image } from "react-native";
+import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { GoogleSignin } from "react-native-google-signin";
 import messaging from '@react-native-firebase/messaging';
-function App(): React.JSX.Element {
+function App({ navigation }: any): React.JSX.Element {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [initializing, setInitializing] = useState(true);
+  const [user, setUser] = useState<FirebaseAuthTypes.User | null>();
+  const [userInput, setUserInput] = useState({ email: "", password: "" });
+
   GoogleSignin.configure({
-    webClientId: '944863983417-8e8hidghpge964g7io597b2q2jvsjm8u.apps.googleusercontent.com'
+    webClientId: '944863983417-3tp5jr6bd053ok838r2qan3n71c22967.apps.googleusercontent.com'
   })
 
   async function onGoogleButtonPress() {
+    //check xem thiết bọ có hỗ trợ Google Play hay không 
+   try {
     await GoogleSignin.hasPlayServices({
       showPlayServicesUpdateDialog: true
     });
 
-    const { idToken } = await GoogleSignin.signIn();
-
+    //Get user Token
+    const { idToken, user} = await GoogleSignin.signIn();
+    console.log(idToken, user);
+    Alert.alert("Đăng nhập thành công")
+    navigation.navigate("Home", {user: user})
+    //tạo một Google credential vớI token
     const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+    
+    //đăng nhập bới credential
     return auth().signInWithCredential(googleCredential);
+   } catch (error) {
+    console.log(error);
+   }
   }
 
 
-  useEffect(() =>{
+  useEffect(() => {
     PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
     registerAppWithFCM();
-  },[]);
+  }, []);
 
   useEffect(() => {
     const unsubscribe = messaging().onMessage(async remoteMessage => {
@@ -34,6 +49,16 @@ function App(): React.JSX.Element {
     });
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const subscriber = auth().onAuthStateChanged(userState => {
+      setUser(userState);
+      if (initializing) {
+        setInitializing(false);
+      }
+    });
+    return subscriber;
   }, []);
 
   async function registerAppWithFCM() {
@@ -45,39 +70,65 @@ function App(): React.JSX.Element {
       <Text>App</Text>
       <Text>--------------------------</Text>
       <TextInput
-        style={{ borderColor: 'blue', borderWidth: 1, width: 250, height: 40 }} placeholder="Enter Email" onChangeText={(text) => {
+        style={{ borderColor: 'blue', borderWidth: 1, width: 250, height: 40, borderRadius: 10, padding: 10 }} placeholder="Enter Email" onChangeText={(text) => {
           setEmail(text);
         }} />
 
       <Text>--------------------------</Text>
       <TextInput
-        style={{ borderColor: 'blue', borderWidth: 1, width: 250, height: 40 }} placeholder="Enter Password" onChangeText={(text) => {
+        style={{ borderColor: 'blue', borderWidth: 1, width: 250, height: 40, borderRadius: 10, padding: 10 }} placeholder="Enter Password" onChangeText={(text) => {
           setPassword(text);
         }} />
 
-      <Button title="Sign In" onPress={() => {
-        //sign up
-        auth().createUserWithEmailAndPassword(email, password)
-          .then(() => {
-            console.log('User account created & signed in!');
-          })
-          .catch(error => {
-            if (error.code === 'auth/email-already-in-use') {
-              Alert.alert('That email address is already in use!');
-            }
 
-            if (error.code === 'auth/invalid-email') {
-              Alert.alert('That email address is invalid!');
-            }
-            console.log(error);
+      <TouchableOpacity style={{ width: 100, height: 40, backgroundColor: 'orange', justifyContent: 'center', alignItems: 'center', borderRadius: 10, marginTop: 15, marginBottom: 10 }}
+        onPress={() => {
+          auth().signInWithEmailAndPassword(email, password)
+            .then(() => {
+              Alert.alert("Đăng nhập thành công");
+              navigation.navigate('Home', {user: user})
+            })
+            .catch(error => {
+              if (error.code === 'auth/user-not-found') {
+                Alert.alert('Tài khoản email chưa được đăng kí!');
+              }
 
-          })
-      }} />
+              if (error.code === 'auth/wrong-password') {
+                Alert.alert('Địa chỉ email không hợp lệ!');
+              }
+            })
+        }}>
+        <Text>Đăng nhập</Text>
+      </TouchableOpacity>
 
-      <Button
-        title="Google Sign-In"
-        onPress={() => onGoogleButtonPress().then(() => console.log('Signed in with Google!'))}
-      />
+      <TouchableOpacity style={{ width: 100, height: 40, backgroundColor: 'orange', justifyContent: 'center', alignItems: 'center', borderRadius: 10, marginBottom: 10 }}
+        onPress={() => {
+          auth().createUserWithEmailAndPassword(email, password)
+            .then(() => {
+              console.log('User account created & signed in!');
+              Alert.alert("Đăng kí thành công!")
+            })
+            .catch(error => {
+              if (error.code === 'auth/email-already-in-use') {
+                Alert.alert('Tài khoản email đã được sử dụng!');
+              }
+
+              if (error.code === 'auth/invalid-email') {
+                Alert.alert('Địa chỉ email không hợp lệ!');
+              }
+              console.log(error);
+
+            })
+        }}>
+        <Text>Đăng kí</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={{ width: 250, height: 40, backgroundColor: 'green', borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
+       onPress={onGoogleButtonPress}
+      >
+        <Image source={{ uri: 'https://cdn.iconscout.com/icon/free/png-256/free-google-160-189824.png' }} style={{ width: 30, height: 30, position: 'absolute', start: 10 }} />
+        <Text style={{ color: 'white', fontWeight: 'bold' }}>Đăng nhập bằng google</Text>
+      </TouchableOpacity>
     </View>
   )
 }
